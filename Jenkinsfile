@@ -30,14 +30,31 @@ pipeline {
         // }
         stage('Sonarqube scanner') {
             steps {
-                withSonarQubeEnv(installationName='sonar') {
-                    sh 'mvn sonar:sonar'
+               script {
+                    withSonarQubeEnv(installationName='sonar') {
+                        sh 'mvn sonar:sonar'
+                    }
+               }
+            }
+            post {
+                always {
+                    script {
+                    def getURL = readProperties file: './target/sonar/report-task.txt'
+                    def taskId = getURL['ceTaskId']
+                    sh "curl -u ${env.sonarqube_admin_secret}: 'http://172.19.0.4:9000/api/ce/task?id=${taskId}' > sonar-report.json"
+                    // def qg = waitForQualityGate()
+                    // if (qg.status != 'OK') {
+                    //     echo "failure: ${qg.status}"
+                    //     def getURL = readProperties file: './target/sonar/report-task.txt'
+                    //     echo ${getURL['ceTaskId']}
+                    // }
+                    }
                 }
             }
         }
         stage('Spotbugs') {
             steps {
-                sh 'mvn spotbugs:check'
+                sh 'mvn spotbugs:spotbugs'
             }
             post {
                 failure {
@@ -45,9 +62,11 @@ pipeline {
                 }
             }
         }
+        
         stage('Deploy') {
             steps {
-                echo 'Done'
+                recordIssues enabledForFailure: true, tool: spotBugs()
+                recordIssues enabledForFailure: true, tool: sonarQube()
             }
         }
     }
