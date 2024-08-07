@@ -41,7 +41,7 @@ pipeline {
             }
             post {
                 failure {
-                    sh 'mvn spotbugs: ui'
+                    sh 'mvn spotbugs:gui'
                 }
             }
         }
