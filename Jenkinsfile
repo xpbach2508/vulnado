@@ -1,37 +1,43 @@
 pipeline {
     agent any
-    triggers {
-        pollSCM('H/5 * * * *')
-    }
     stages {
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
-                checkout scm
+                git url: 'https://github.com/xpbach2508/vulnado.git', branch: 'master'
             }
         }
-        stage('Build') {
+        stage ('Prepare') {
             steps {
-                // Add your build steps here
-                echo 'Building...'
+                sh 'mvn clean'
+                sh 'mvn install'
+            }
+        }
+        stage('Build') { 
+            steps {
+                sh 'mvn -B -DskipTests clean package' 
             }
         }
         stage('Test') {
             steps {
-                // Add your test steps here
-                echo 'Testing...'
+                sh 'mvn test'
+            }
+            post {
+                always {
+                    junit 'target/surefire-reports/*.xml'
+                }
+            }
+        }
+        stage('Sonarqube scanner') {
+            steps {
+                withSonarQubeEnv(installationName='sonar') {
+                    sh 'mvn sonar:sonar'
+                }
             }
         }
         stage('Deploy') {
             steps {
-                // Add your deploy steps here
-                echo 'Deploying...'
+                echo 'Done'
             }
-        }
-    }
-    post {
-        always {
-            // Steps to always run after the pipeline, like cleanup or notifications
-            echo 'Pipeline completed.'
         }
     }
 }
