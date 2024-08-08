@@ -4,7 +4,7 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 // Checkout the code from the Git repository
-                git url: 'https://github.com/xpbach2508/vulnado.git', branch: 'master'
+                git url: 'https://github.com/xpbach2508/WebGoat.git', branch: 'master'
             }
         }
         stage ('Prepare') {
@@ -41,7 +41,11 @@ pipeline {
                     script {
                     def getURL = readProperties file: './target/sonar/report-task.txt'
                     def taskId = getURL['ceTaskId']
-                    sh "curl -u ${env.sonarqube_admin_secret}: 'http://172.19.0.4:9000/api/ce/task?id=${taskId}' > sonar-report.json"
+                    withCredentials([string(credentialsId: 'sonarqube_admin_secret', variable: 'SONARQUBE_TOKEN')]) {
+                        withSonarQubeEnv(installationName='sonar') {
+                            sh "curl -u ${SONARQUBE_TOKEN}: '${SONAR_HOST_URL}/api/ce/task?id=${taskId}' > sonar-report.json"
+                        }
+                    }
                     // def qg = waitForQualityGate()
                     // if (qg.status != 'OK') {
                     //     echo "failure: ${qg.status}"
